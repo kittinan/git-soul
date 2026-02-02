@@ -101,92 +101,178 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-dark-bg">
-      <div className="relative overflow-hidden">
-        {/* Background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-neon-cyan/5 to-transparent"></div>
+    <main className="min-h-screen bg-dark-bg relative">
+      {/* Enhanced animated background */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-neon-cyan/3 to-transparent animate-pulse"></div>
+        <div className="absolute inset-0 bg-gradient-to-tl from-transparent via-neon-magenta/2 to-transparent animate-pulse" style={{ animationDelay: '1s' }}></div>
         
-        <Container>
-          <Header />
-          
-          <div className="flex flex-col items-center justify-center min-h-[80vh] py-12">
-            <div className="text-center mb-12">
-              <h1 className="text-6xl font-bold mb-4 bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-green bg-clip-text text-transparent">
-                GitSoul
-              </h1>
-              <p className="text-xl text-gray-400 mb-8">
-                Discover the personality and insights behind any code repository
-              </p>
-            </div>
+        {/* Floating particles background */}
+        <div className="absolute inset-0">
+          {[...Array(20)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-1 h-1 bg-neon-cyan/20 rounded-full animate-float"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 3}s`,
+                animationDuration: `${3 + Math.random() * 2}s`
+              }}
+            ></div>
+          ))}
+        </div>
+      </div>
+      
+      <Container>
+        <Header />
+        
+        <div className="flex flex-col items-center justify-center min-h-[80vh] py-12 relative z-10">
+          <div className="text-center mb-12">
+            <h1 className="text-7xl md:text-8xl font-bold mb-6 bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-green bg-clip-text text-transparent animate-pulse">
+              GitSoul
+            </h1>
+            <p className="text-xl md:text-2xl text-gray-300 mb-4">
+              Discover the personality and insights behind any code repository
+            </p>
+            <p className="text-sm text-gray-500 mb-8">
+              Press <kbd className="px-2 py-1 text-xs bg-gray-800 rounded">Ctrl+Enter</kbd> to analyze quickly
+            </p>
+          </div>
 
-            <GlassPanel className="w-full max-w-2xl p-8">
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label htmlFor="repoUrl" className="block text-sm font-medium text-gray-300 mb-2">
-                    Enter GitHub Repository URL
-                  </label>
+          <GlassPanel className="w-full max-w-2xl p-8 transform hover:scale-105 transition-transform duration-300">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label htmlFor="repoUrl" className="block text-sm font-medium text-gray-300 mb-2">
+                  Enter GitHub Repository URL
+                </label>
+                <div className="relative">
                   <Input
                     id="repoUrl"
                     type="url"
                     placeholder="https://github.com/username/repository"
                     value={repoUrl}
                     onChange={(e) => handleUrlChange(e.target.value)}
-                    className={`w-full ${error ? 'border-red-500 focus:border-red-500' : ''}`}
+                    className={`w-full transition-all duration-300 ${
+                      error ? 'border-red-500 focus:border-red-500 shake' : 
+                      repoUrl && isValidGitHubUrl(repoUrl) ? 'border-green-500 focus:border-green-500' : ''
+                    }`}
                     required
                     disabled={isLoading}
                   />
-                  {error && (
-                    <p className="mt-2 text-sm text-red-500">{error}</p>
-                  )}
-                  {!error && repoUrl && (
-                    <p className="mt-2 text-sm text-green-500">
-                      {isValidGitHubUrl(repoUrl) ? '✓ Valid GitHub repository' : 'Invalid GitHub URL'}
-                    </p>
+                  {repoUrl && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {isValidGitHubUrl(repoUrl) ? (
+                        <span className="text-green-400">✓</span>
+                      ) : (
+                        <span className="text-red-400">✗</span>
+                      )}
+                    </div>
                   )}
                 </div>
                 
-                <Button
-                  type="submit"
-                  disabled={isLoading || !repoUrl.trim() || !isValidGitHubUrl(repoUrl)}
-                  className={`w-full ${!isLoading && !repoUrl.trim() ? 'opacity-50 cursor-not-allowed' : 'neon-glow-cyan'}`}
-                >
-                  {isLoading ? (
-                    <div className="flex items-center justify-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Analyzing...</span>
-                    </div>
-                  ) : (
-                    'Analyze Repository'
-                  )}
-                </Button>
-              </form>
-
-              {/* Example URLs */}
-              <div className="mt-6 pt-6 border-t border-gray-700">
-                <p className="text-xs text-gray-500 mb-2">Try these examples:</p>
-                <div className="space-y-1">
-                  <button
-                    onClick={() => setRepoUrl('https://github.com/facebook/react')}
-                    className="text-xs text-neon-cyan hover:text-neon-cyan/80 block w-full text-left"
-                    disabled={isLoading}
-                  >
-                    • React (Large project)
-                  </button>
-                  <button
-                    onClick={() => setRepoUrl('https://github.com/tailwindlabs/tailwindcss')}
-                    className="text-xs text-neon-cyan hover:text-neon-cyan/80 block w-full text-left"
-                    disabled={isLoading}
-                  >
-                    • Tailwind CSS (Popular tool)
-                  </button>
-                </div>
+                {/* Enhanced error display */}
+                {error && (
+                  <div className="mt-2 p-3 bg-red-900/20 border border-red-500/30 rounded-lg">
+                    <p className="text-sm text-red-400 flex items-center">
+                      <span className="mr-2">⚠️</span>
+                      {error}
+                    </p>
+                    {error.includes('timeout') && (
+                      <p className="text-xs text-red-300 mt-1">
+                        Tip: Check your internet connection and try again
+                      </p>
+                    )}
+                  </div>
+                )}
+                
+                {/* Success indicator */}
+                {!error && repoUrl && isValidGitHubUrl(repoUrl) && (
+                  <p className="mt-2 text-sm text-green-400 flex items-center">
+                    <span className="mr-2">✓</span>
+                    Valid GitHub repository ready to analyze
+                  </p>
+                )}
               </div>
-            </GlassPanel>
-          </div>
-        </Container>
-        
-        <Footer />
-      </div>
+              
+              <Button
+                type="submit"
+                disabled={isLoading || !repoUrl.trim() || !isValidGitHubUrl(repoUrl)}
+                className={`w-full transform hover:scale-105 transition-all duration-300 ${
+                  !isLoading && !repoUrl.trim() ? 'opacity-50 cursor-not-allowed' : 'neon-glow-cyan'
+                }`}
+              >
+                {isLoading ? (
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Analyzing repository...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center space-x-2">
+                    <span>Analyze Repository</span>
+                    <span className="text-xs opacity-70">Ctrl+Enter</span>
+                  </div>
+                )}
+              </Button>
+            </form>
+
+            {/* Enhanced Example URLs */}
+            <div className="mt-8 pt-6 border-t border-gray-700">
+              <p className="text-sm text-gray-400 mb-3 flex items-center">
+                <span className="mr-2">💡</span>
+                Try these example repositories:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <button
+                  onClick={() => setRepoUrl('https://github.com/facebook/react')}
+                  className="text-left p-2 bg-gray-800/50 hover:bg-gray-700/50 rounded transition-colors duration-200 group"
+                  disabled={isLoading}
+                >
+                  <div className="text-sm text-neon-cyan group-hover:text-neon-cyan/80">
+                    React
+                  </div>
+                  <div className="text-xs text-gray-500">Large framework project</div>
+                </button>
+                
+                <button
+                  onClick={() => setRepoUrl('https://github.com/tailwindlabs/tailwindcss')}
+                  className="text-left p-2 bg-gray-800/50 hover:bg-gray-700/50 rounded transition-colors duration-200 group"
+                  disabled={isLoading}
+                >
+                  <div className="text-sm text-neon-magenta group-hover:text-neon-magenta/80">
+                    Tailwind CSS
+                  </div>
+                  <div className="text-xs text-gray-500">Popular CSS framework</div>
+                </button>
+                
+                <button
+                  onClick={() => setRepoUrl('https://github.com/vercel/next.js')}
+                  className="text-left p-2 bg-gray-800/50 hover:bg-gray-700/50 rounded transition-colors duration-200 group"
+                  disabled={isLoading}
+                >
+                  <div className="text-sm text-neon-green group-hover:text-neon-green/80">
+                    Next.js
+                  </div>
+                  <div className="text-xs text-gray-500">React framework</div>
+                </button>
+                
+                <button
+                  onClick={() => setRepoUrl('https://github.com/microsoft/vscode')}
+                  className="text-left p-2 bg-gray-800/50 hover:bg-gray-700/50 rounded transition-colors duration-200 group"
+                  disabled={isLoading}
+                >
+                  <div className="text-sm text-neon-yellow group-hover:text-neon-yellow/80">
+                    VS Code
+                  </div>
+                  <div className="text-xs text-gray-500">Code editor</div>
+                </button>
+              </div>
+            </div>
+          </GlassPanel>
+        </div>
+      </Container>
+      
+      <Footer />
     </main>
   )
 }

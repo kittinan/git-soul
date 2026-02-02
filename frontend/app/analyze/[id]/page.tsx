@@ -22,6 +22,7 @@ export default function AnalyzePage() {
   const [show3D, setShow3D] = useState(true)
   const [error, setError] = useState('')
   const [retryCount, setRetryCount] = useState(0)
+  const [shareSuccess, setShareSuccess] = useState(false)
   const MAX_RETRIES = 3
 
   // Poll for analysis status
@@ -81,7 +82,8 @@ export default function AnalyzePage() {
   const copyShareUrl = () => {
     const url = `${window.location.origin}/analyze/${analysisId}`
     navigator.clipboard.writeText(url).then(() => {
-      alert('Share URL copied to clipboard!')
+      setShareSuccess(true)
+      setTimeout(() => setShareSuccess(false), 3000) // Hide after 3 seconds
     }).catch(() => {
       // Fallback for older browsers
       const textArea = document.createElement('textarea')
@@ -90,8 +92,24 @@ export default function AnalyzePage() {
       textArea.select()
       document.execCommand('copy')
       document.body.removeChild(textArea)
-      alert('Share URL copied to clipboard!')
+      setShareSuccess(true)
+      setTimeout(() => setShareSuccess(false), 3000)
     })
+  }
+
+  const shareOnSocial = (platform: string) => {
+    const url = `${window.location.origin}/analyze/${analysisId}`
+    const text = 'Check out this repository analysis on GitSoul!'
+    
+    const shareUrls = {
+      twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`
+    }
+    
+    if (shareUrls[platform as keyof typeof shareUrls]) {
+      window.open(shareUrls[platform as keyof typeof shareUrls], '_blank', 'width=600,height=400')
+    }
   }
 
   // Map API personality data to 3D visualization format
@@ -191,19 +209,72 @@ export default function AnalyzePage() {
               <GlassPanel className="p-6">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-2xl font-bold">Personality Visualization</h3>
-                  <Button 
-                    onClick={() => setShow3D(!show3D)}
-                    variant="secondary"
-                    className="text-sm px-4 py-2"
-                  >
-                    {show3D ? 'Show 2D' : 'Show 3D'}
-                  </Button>
+                  <div className="flex space-x-2">
+                    <Button 
+                      onClick={() => setShow3D(!show3D)}
+                      variant="secondary"
+                      className="text-sm px-4 py-2"
+                    >
+                      {show3D ? 'Show 2D' : 'Show 3D'}
+                    </Button>
+                    
+                    {/* Share Button */}
+                    <Button 
+                      onClick={copyShareUrl}
+                      variant="secondary"
+                      className="text-sm px-4 py-2 relative"
+                      title="Share analysis results"
+                    >
+                      📤 Share
+                    </Button>
+                  </div>
                 </div>
+                
+                {/* Share Success Message */}
+                {shareSuccess && (
+                  <div className="absolute top-16 right-6 z-20">
+                    <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-3 animate-pulse">
+                      <p className="text-sm text-green-400 flex items-center">
+                        <span className="mr-2">✓</span>
+                        Share URL copied to clipboard!
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="h-96 bg-dark-panel rounded-lg overflow-hidden">
                   <PersonalityVisualizer 
                     personality={visualizationPersonality}
                     show3D={show3D}
                   />
+                </div>
+                
+                {/* Social Share Buttons */}
+                <div className="mt-4 pt-4 border-t border-gray-700">
+                  <p className="text-xs text-gray-500 mb-2">Share on social media:</p>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => shareOnSocial('twitter')}
+                      className="px-3 py-1 bg-blue-600/20 hover:bg-blue-600/40 rounded text-xs text-blue-400 transition-colors duration-200"
+                      title="Share on Twitter"
+                    >
+                      Twitter
+                    </button>
+                    <button
+                      onClick={() => shareOnSocial('linkedin')}
+                      className="px-3 py-1 bg-blue-700/20 hover:bg-blue-700/40 rounded text-xs text-blue-500 transition-colors duration-200"
+                      title="Share on LinkedIn"
+                    >
+                      LinkedIn
+                    </button>
+                    <button
+                      onClick={() => shareOnSocial('facebook')}
+                      className="px-3 py-1 bg-blue-800/20 hover:bg-blue-800/40 rounded text-xs text-blue-600 transition-colors duration-200"
+                      title="Share on Facebook"
+                    >
+                      Facebook
+                    </button>
+                  </div>
                 </div>
               </GlassPanel>
 
