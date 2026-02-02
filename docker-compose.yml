@@ -9,8 +9,6 @@ services:
       POSTGRES_USER: gitsoul
       POSTGRES_PASSWORD: gitsoul_dev
       POSTGRES_DB: gitsoul
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -18,6 +16,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - gitsoul-network
 
   # Django Backend API
   backend:
@@ -29,7 +29,7 @@ services:
     volumes:
       - ./backend:/app
     ports:
-      - "8000:8000"
+      - "8001:8000"
     environment:
       - DATABASE_URL=postgresql://gitsoul:gitsoul_dev@db:5432/gitsoul
       - DJANGO_SECRET_KEY=dev-secret-key-change-in-production
