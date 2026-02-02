@@ -138,6 +138,58 @@ docker-compose exec backend python manage.py createsuperuser
 # http://localhost:8000/admin/
 ```
 
+## 🚀 Launch Instructions
+
+### Quick Start (Recommended - Docker)
+```bash
+# Clone and set up
+git clone git@github.com:kittinan/git-soul.git
+cd git-soul/gitsoul-mvp
+cp .env.example .env
+# Edit .env with your API keys
+
+# Launch all services
+docker-compose up --build
+
+# Access the application
+# Frontend: http://localhost:3000
+# Backend API: http://localhost:8000
+# API Docs: http://localhost:8000/api/v1/docs/
+```
+
+### Manual Setup (Development)
+```bash
+# Backend Setup
+cd backend
+python3 -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver
+
+# Frontend Setup (New Terminal)
+cd frontend
+npm install
+npm run dev
+```
+
+## ⚠️ Known Limitations
+
+**Current MVP Limitations:**
+- Only public GitHub repositories supported
+- No user accounts or authentication
+- Limited to repositories with <1000 files
+- Basic mobile support (not fully optimized)
+- No persistent data storage between sessions
+- Rate limits apply for GitHub API calls
+- AI analysis may vary based on repository complexity
+
+**Performance Considerations:**
+- Large repositories may take longer to analyze
+- 3D visualization requires modern browser
+- Analysis time depends on GitHub API response times
+- Memory usage scales with repository size
+
 ## 📝 Git Workflow
 
 ```bash
