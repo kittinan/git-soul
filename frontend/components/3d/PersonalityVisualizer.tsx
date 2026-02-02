@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls, Environment, PerspectiveCamera } from '@react-three/drei'
+import { OrbitControls, Environment, PerspectiveCamera, SoftShadows, Float } from '@react-three/drei'
 import { Suspense } from 'react'
+import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import { PersonalityShape } from './shapes/PersonalityShape'
 import { Particles } from './effects/Particles'
 import { GlowEffect } from './effects/GlowEffect'
+import { AmbientParticles } from './effects/AmbientParticles'
 import { FallbackVisualizer } from './FallbackVisualizer'
 
 interface PersonalityVisualizerProps {
@@ -97,35 +99,70 @@ export function PersonalityVisualizer({
         }}
       >
         <Suspense fallback={null}>
-          {/* Lighting Setup */}
-          <ambientLight intensity={0.2} />
+          {/* Enhanced Lighting Setup */}
+          <ambientLight intensity={0.3} />
           <directionalLight 
             position={[5, 5, 5]} 
-            intensity={1} 
+            intensity={1.5} 
             color={personality.visualization.colors.primary}
+            castShadow
+            shadow-mapSize-width={2048}
+            shadow-mapSize-height={2048}
           />
           <pointLight 
             position={[-5, -5, 5]} 
-            intensity={0.5} 
+            intensity={0.8} 
             color={personality.visualization.colors.accent}
           />
+          <spotLight 
+            position={[0, 10, 0]} 
+            intensity={0.5} 
+            color={personality.visualization.colors.secondary}
+            angle={0.5}
+            penumbra={0.5}
+          />
+          
+          {/* Soft shadows for better depth */}
+          <SoftShadows />
           
           {/* Environment for reflections */}
           <Environment preset="city" />
           
-          {/* Main 3D Shape */}
-          <PersonalityShape personality={personality} />
+          {/* Enhanced Main 3D Shape with Float animation */}
+          <Float
+            speed={2}
+            rotationIntensity={0.5}
+            floatIntensity={0.3}
+          >
+            <PersonalityShape personality={personality} />
+          </Float>
           
-          {/* Particle Effects */}
+          {/* Enhanced Particle Effects */}
           {personality.traits.creativity > 0.6 && (
             <Particles 
-              count={Math.min(personality.visualization.shape.particle_count, 200)}
+              count={Math.min(personality.visualization.shape.particle_count, 300)}
               color={personality.visualization.colors.accent}
             />
           )}
           
-          {/* Glow Effect */}
+          {/* Ambient Particles for atmosphere */}
+          <AmbientParticles 
+            count={50}
+            color={personality.visualization.colors.primary}
+          />
+          
+          {/* Enhanced Glow Effect */}
           <GlowEffect color={personality.visualization.colors.primary} />
+          
+          {/* Post-processing effects */}
+          <EffectComposer>
+            <Bloom
+              intensity={0.3}
+              luminanceThreshold={0.2}
+              luminanceSmoothing={0.9}
+              height={300}
+            />
+          </EffectComposer>
           
           {/* Camera Controls */}
           <PerspectiveCamera makeDefault position={[0, 0, 5]} />
@@ -137,6 +174,8 @@ export function PersonalityVisualizer({
             autoRotateSpeed={personality.visualization.shape.rotation_speed}
             maxDistance={10}
             minDistance={2}
+            enableDamping={true}
+            dampingFactor={0.05}
           />
         </Suspense>
       </Canvas>

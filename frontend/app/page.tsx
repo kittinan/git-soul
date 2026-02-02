@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { GlassPanel } from '@/components/ui/GlassPanel'
 import { Button } from '@/components/ui/Button'
@@ -15,11 +15,28 @@ export default function Home() {
   const [repoUrl, setRepoUrl] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [isCopied, setIsCopied] = useState(false)
 
   const isValidGitHubUrl = (url: string): boolean => {
     const githubRegex = /^https?:\/\/(www\.)?github\.com\/[^\/]+\/[^\/]+(\/)?$/
     return githubRegex.test(url.trim())
   }
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+Enter or Cmd+Enter to submit
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault()
+        if (!isLoading && repoUrl.trim() && isValidGitHubUrl(repoUrl)) {
+          handleSubmit(e as unknown as React.FormEvent)
+        }
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [repoUrl, isLoading])
 
   const getValidationError = (url: string): string => {
     if (!url.trim()) {

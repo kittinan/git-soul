@@ -10,6 +10,7 @@ import { Container } from '@/components/layout/Container'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { PersonalityVisualizer } from '@/components/3d/PersonalityVisualizer'
+import { NeuralNetworkLoading } from '@/components/ui/NeuralNetworkLoading'
 import { getAnalysisStatus, getPersonality, Personality } from '@/lib/api'
 
 export default function AnalyzePage() {
@@ -19,7 +20,9 @@ export default function AnalyzePage() {
   const [progress, setProgress] = useState(0)
   const [personality, setPersonality] = useState<Personality | null>(null)
   const [show3D, setShow3D] = useState(true)
-  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [retryCount, setRetryCount] = useState(0)
+  const MAX_RETRIES = 3
 
   // Poll for analysis status
   useEffect(() => {
@@ -28,51 +31,96 @@ export default function AnalyzePage() {
         const statusData = await getAnalysisStatus(analysisId)
         setStatus(statusData.status as any)
         setProgress(statusData.progress)
+        setError('') // Clear any previous errors
         
         if (statusData.status === 'completed') {
           // Fetch personality data when analysis is complete
           const personalityData = await getPersonality(analysisId)
           setPersonality(personalityData)
         } else if (statusData.status === 'error') {
-          console.error('Analysis failed')
+          setError('Analysis failed. The repository may be private, empty, or inaccessible.')
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error polling status:', error)
         setStatus('error')
+        
+        if (error.response?.status === 404) {
+          setError('Analysis not found. It may have expired or been deleted.')
+        } else if (error.response?.status === 429) {
+          setError('Rate limit exceeded. Please wait a moment and try again.')
+        } else if (error.response?.status >= 500) {
+          setError('Server error. Please try again later.')
+        } else {
+          setError('Failed to check analysis status. Please try again.')
+        }
       }
     }
 
-    const interval = setInterval(pollStatus, 2000)
+    // Only poll if not completed or in error state (with retry limit)
+    if (status !== 'completed' && status !== 'error' && retryCount < MAX_RETRIES) {
+      pollStatus()
+    }
+
+    const interval = setInterval(() => {
+      if (status !== 'completed' && status !== 'error' && retryCount < MAX_RETRIES) {
+        pollStatus()
+      }
+    }, 2000)
+    
     return () => clearInterval(interval)
-  }, [analysisId])
+  }, [analysisId, status, retryCount])
+
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1)
+    setStatus('pending')
+    setProgress(0)
+    setPersonality(null)
+    setError('')
+  }
+
+  const copyShareUrl = () => {
+    const url = `${window.location.origin}/analyze/${analysisId}`
+    navigator.clipboard.writeText(url).then(() => {
+      alert('Share URL copied to clipboard!')
+    }).catch(() => {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea')
+      textArea.value = url
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      alert('Share URL copied to clipboard!')
+    })
+  }
 
   // Map API personality data to 3D visualization format
   const mapToVisualizationPersonality = (personalityData: Personality) => {
     const avgInnovation = (personalityData.traits.innovation + personalityData.traits.creativity) / 2
-    const avgCollaboration = personalityData.traits.collaboration
-    const avgReliability = personalityData.traits.reliability
+    const avgOrganization = personalityData.traits.organization || personalityData.traits.collaboration || 0.5
+    const avgMaintainability = personalityData.traits.maintainability || personalityData.traits.reliability || 0.5
     
     const shapeType = avgInnovation > 0.7 ? 'complex' as const : 
                      avgInnovation > 0.4 ? 'sphere' as const : 'cube' as const
     
     return {
       traits: {
-        complexity: (avgInnovation + personalityData.traits.technical_excellence) / 2,
+        complexity: (avgInnovation + (personalityData.traits.technical_excellence || personalityData.traits.performance)) / 2,
         creativity: personalityData.traits.creativity,
-        maintainability: avgReliability,
+        maintainability: avgMaintainability,
         innovation: personalityData.traits.innovation,
-        organization: avgCollaboration,
-        performance: personalityData.traits.technical_excellence
+        organization: avgOrganization,
+        performance: personalityData.traits.performance || personalityData.traits.technical_excellence
       },
       visualization: {
         colors: {
           primary: avgInnovation > 0.7 ? '#00ffff' : '#0080ff',
-          secondary: avgCollaboration > 0.7 ? '#ff00ff' : '#ff8000',
-          accent: avgReliability > 0.7 ? '#00ff00' : '#ffff00'
+          secondary: avgOrganization > 0.7 ? '#ff00ff' : '#ff8000',
+          accent: avgMaintainability > 0.7 ? '#00ff00' : '#ffff00'
         },
         shape: {
           type: shapeType,
-          complexity: (avgInnovation + personalityData.traits.technical_excellence) / 2,
+          complexity: (avgInnovation + (personalityData.traits.technical_excellence || personalityData.traits.performance)) / 2,
           rotation_speed: avgInnovation * 2,
           particle_count: Math.floor(personalityData.traits.creativity * 150)
         }
@@ -90,24 +138,50 @@ export default function AnalyzePage() {
         <div className="py-12">
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold mb-4">Repository Analysis</h1>
-            <p className="text-gray-400">Analysis ID: {analysisId}</p>
+            <div className="flex items-center justify-center space-x-4">
+              <p className="text-gray-400">Analysis ID: {analysisId}</p>
+              {status === 'completed' && (
+                <Button
+                  onClick={copyShareUrl}
+                  variant="secondary"
+                  className="text-xs px-3 py-1"
+                >
+                  📋 Copy URL
+                </Button>
+              )}
+            </div>
           </div>
 
+          {/* Loading/Error State */}
           {status !== 'completed' && (
             <GlassPanel className="w-full max-w-2xl mx-auto p-8">
-              <div className="text-center">
-                <h3 className="text-xl font-semibold mb-4">
-                  {status === 'pending' ? 'Initializing analysis...' : 
-                   status === 'analyzing' ? 'Analyzing repository...' :
-                   status === 'error' ? 'Analysis failed' : 'Processing...'}
-                </h3>
-                {status !== 'error' && (
-                  <>
-                    <ProgressBar value={progress} className="mb-4" />
-                    <p className="text-gray-400">{Math.round(progress)}% complete</p>
-                  </>
-                )}
-              </div>
+              {status === 'error' ? (
+                <div className="text-center">
+                  <div className="text-6xl mb-4">❌</div>
+                  <h3 className="text-xl font-semibold mb-4 text-red-400">Analysis Failed</h3>
+                  <p className="text-gray-400 mb-6">{error || 'The analysis could not be completed.'}</p>
+                  {retryCount < MAX_RETRIES && (
+                    <Button onClick={handleRetry} className="neon-glow-cyan">
+                      🔄 Try Again ({MAX_RETRIES - retryCount} attempts remaining)
+                    </Button>
+                  )}
+                  {retryCount >= MAX_RETRIES && (
+                    <p className="text-sm text-gray-500 mt-4">
+                      Maximum retry attempts reached. Please start a new analysis.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center">
+                  <NeuralNetworkLoading 
+                    message={
+                      status === 'pending' ? 'Initializing analysis...' : 
+                      status === 'analyzing' ? 'Analyzing repository...' : 'Processing...'
+                    }
+                    progress={progress}
+                  />
+                </div>
+              )}
             </GlassPanel>
           )}
 
@@ -133,72 +207,184 @@ export default function AnalyzePage() {
                 </div>
               </GlassPanel>
 
-              {/* Personality Traits Section */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Personality Traits Section - All 6 traits */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <Card>
-                  <h4 className="font-semibold text-neon-cyan mb-2">Innovation</h4>
-                  <p className="text-3xl font-bold">{Math.round(personality.traits.innovation * 100)}%</p>
-                  <p className="text-sm text-gray-400">
-                    {personality.traits.innovation > 0.7 ? 'High creativity in problem-solving' : 
-                     personality.traits.innovation > 0.4 ? 'Moderate innovation' : 'Room for innovation'}
+                  <h4 className="font-semibold text-neon-cyan mb-2">Complexity</h4>
+                  <p className="text-3xl font-bold">{Math.round(visualizationPersonality?.traits.complexity! * 100)}%</p>
+                  <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
+                    <div 
+                      className="bg-neon-cyan h-2 rounded-full" 
+                      style={{ width: `${visualizationPersonality?.traits.complexity! * 100}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-sm text-gray-400 mt-2">
+                    {visualizationPersonality?.traits.complexity! > 0.7 ? 'Highly complex architecture' : 
+                     visualizationPersonality?.traits.complexity! > 0.4 ? 'Moderate complexity' : 'Simple and straightforward'}
                   </p>
                 </Card>
                 
                 <Card>
-                  <h4 className="font-semibold text-neon-magenta mb-2">Collaboration</h4>
-                  <p className="text-3xl font-bold">{Math.round(personality.traits.collaboration * 100)}%</p>
-                  <p className="text-sm text-gray-400">
-                    {personality.traits.collaboration > 0.7 ? 'Strong team contribution' :
-                     personality.traits.collaboration > 0.4 ? 'Good collaboration' : 'Limited collaboration'}
-                  </p>
-                </Card>
-                
-                <Card>
-                  <h4 className="font-semibold text-neon-green mb-2">Reliability</h4>
-                  <p className="text-3xl font-bold">{Math.round(personality.traits.reliability * 100)}%</p>
-                  <p className="text-sm text-gray-400">
-                    {personality.traits.reliability > 0.7 ? 'Consistent quality delivery' :
-                     personality.traits.reliability > 0.4 ? 'Generally reliable' : 'Inconsistent quality'}
-                  </p>
-                </Card>
-              </div>
-
-              {/* Additional Traits */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                  <h4 className="font-semibold text-neon-purple mb-2">Creativity</h4>
+                  <h4 className="font-semibold text-neon-magenta mb-2">Creativity</h4>
                   <p className="text-3xl font-bold">{Math.round(personality.traits.creativity * 100)}%</p>
-                  <p className="text-sm text-gray-400">Creative problem-solving approach</p>
+                  <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
+                    <div 
+                      className="bg-neon-magenta h-2 rounded-full" 
+                      style={{ width: `${personality.traits.creativity * 100}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-sm text-gray-400 mt-2">
+                    {personality.traits.creativity > 0.7 ? 'Highly creative solutions' :
+                     personality.traits.creativity > 0.4 ? 'Creative approach' : 'Conventional methods'}
+                  </p>
                 </Card>
                 
                 <Card>
-                  <h4 className="font-semibold text-neon-yellow mb-2">Technical Excellence</h4>
-                  <p className="text-3xl font-bold">{Math.round(personality.traits.technical_excellence * 100)}%</p>
-                  <p className="text-sm text-gray-400">Code quality and technical practices</p>
+                  <h4 className="font-semibold text-neon-green mb-2">Maintainability</h4>
+                  <p className="text-3xl font-bold">{Math.round(personality.traits.maintainability * 100)}%</p>
+                  <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
+                    <div 
+                      className="bg-neon-green h-2 rounded-full" 
+                      style={{ width: `${personality.traits.maintainability * 100}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-sm text-gray-400 mt-2">
+                    {personality.traits.maintainability > 0.7 ? 'Easy to maintain' :
+                     personality.traits.maintainability > 0.4 ? 'Moderately maintainable' : 'Hard to maintain'}
+                  </p>
+                </Card>
+
+                <Card>
+                  <h4 className="font-semibold text-neon-purple mb-2">Innovation</h4>
+                  <p className="text-3xl font-bold">{Math.round(personality.traits.innovation * 100)}%</p>
+                  <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
+                    <div 
+                      className="bg-neon-purple h-2 rounded-full" 
+                      style={{ width: `${personality.traits.innovation * 100}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-sm text-gray-400 mt-2">
+                    {personality.traits.innovation > 0.7 ? 'Cutting-edge innovation' :
+                     personality.traits.innovation > 0.4 ? 'Innovative approach' : 'Traditional approach'}
+                  </p>
+                </Card>
+
+                <Card>
+                  <h4 className="font-semibold text-neon-yellow mb-2">Organization</h4>
+                  <p className="text-3xl font-bold">{Math.round(personality.traits.organization * 100)}%</p>
+                  <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
+                    <div 
+                      className="bg-neon-yellow h-2 rounded-full" 
+                      style={{ width: `${personality.traits.organization * 100}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-sm text-gray-400 mt-2">
+                    {personality.traits.organization > 0.7 ? 'Well-organized structure' :
+                     personality.traits.organization > 0.4 ? 'Good organization' : 'Needs organization'}
+                  </p>
+                </Card>
+
+                <Card>
+                  <h4 className="font-semibold text-orange-500 mb-2">Performance</h4>
+                  <p className="text-3xl font-bold">{Math.round((personality.traits.performance || personality.traits.technical_excellence) * 100)}%</p>
+                  <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
+                    <div 
+                      className="bg-orange-500 h-2 rounded-full" 
+                      style={{ width: `${(personality.traits.performance || personality.traits.technical_excellence) * 100}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-sm text-gray-400 mt-2">
+                    {(personality.traits.performance || personality.traits.technical_excellence) > 0.7 ? 'High-performance code' :
+                     (personality.traits.performance || personality.traits.technical_excellence) > 0.4 ? 'Good performance' : 'Performance concerns'}
+                  </p>
                 </Card>
               </div>
 
-              {/* Insights Cards Section */}
+              {/* Code Insights Section */}
               <GlassPanel className="p-6">
-                <h3 className="text-2xl font-bold mb-4">Key Insights</h3>
+                <h3 className="text-2xl font-bold mb-4">Code Insights</h3>
                 <div className="space-y-4">
-                  {personality.insights.map((insight, index) => (
-                    <div key={index} className="glass p-4 rounded-lg">
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-semibold text-white">{insight.category}</h4>
-                        <span className="text-xs text-gray-400">
-                          {Math.round(insight.confidence * 100)}% confidence
-                        </span>
+                  {personality.insights.map((insight, index) => {
+                    const isStrength = insight.category.toLowerCase().includes('strength') || 
+                                    insight.category.toLowerCase().includes('positive')
+                    const isIssue = insight.category.toLowerCase().includes('issue') || 
+                                  insight.category.toLowerCase().includes('problem') ||
+                                  insight.category.toLowerCase().includes('error')
+                    const isPattern = !isStrength && !isIssue
+                    
+                    const categoryColor = isStrength ? 'green' : isIssue ? 'red' : 'blue'
+                    
+                    return (
+                      <div key={index} className="glass p-4 rounded-lg">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-center space-x-2">
+                            <span className={`inline-block w-3 h-3 rounded-full ${
+                              isStrength ? 'bg-green-500' : 
+                              isIssue ? 'bg-red-500' : 'bg-blue-500'
+                            }`}></span>
+                            <h4 className="font-semibold text-white">{insight.category}</h4>
+                          </div>
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            isStrength ? 'bg-green-500/20 text-green-400' : 
+                            isIssue ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'
+                          }`}>
+                            {isStrength ? 'Strength' : isIssue ? 'Issue' : 'Pattern'}
+                          </span>
+                        </div>
+                        <p className="text-gray-400">{insight.description}</p>
+                        <div className="mt-2 flex items-center justify-between">
+                          <span className="text-xs text-gray-500">
+                            {Math.round(insight.confidence * 100)}% confidence
+                          </span>
+                          {isIssue && (
+                            <span className={`text-xs px-2 py-1 rounded ${
+                              insight.confidence > 0.8 ? 'bg-red-500/20 text-red-400' :
+                              insight.confidence > 0.5 ? 'bg-yellow-500/20 text-yellow-400' :
+                              'bg-orange-500/20 text-orange-400'
+                            }`}>
+                              {insight.confidence > 0.8 ? 'High Severity' :
+                               insight.confidence > 0.5 ? 'Medium Severity' : 'Low Severity'}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-gray-400">{insight.description}</p>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
                 
                 {/* Summary */}
                 <div className="mt-6 p-4 bg-dark-panel rounded-lg">
-                  <h4 className="font-semibold text-white mb-2">Summary</h4>
+                  <h4 className="font-semibold text-white mb-2">Personality Summary</h4>
                   <p className="text-gray-400">{personality.summary}</p>
+                  
+                  {/* Personality Tags */}
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {personality.traits.innovation > 0.7 && (
+                      <span className="text-xs px-2 py-1 bg-neon-purple/20 text-neon-purple rounded-full">
+                        Innovative
+                      </span>
+                    )}
+                    {personality.traits.creativity > 0.7 && (
+                      <span className="text-xs px-2 py-1 bg-neon-magenta/20 text-neon-magenta rounded-full">
+                        Creative
+                      </span>
+                    )}
+                    {personality.traits.maintainability > 0.7 && (
+                      <span className="text-xs px-2 py-1 bg-neon-green/20 text-neon-green rounded-full">
+                        Maintainable
+                      </span>
+                    )}
+                    {personality.traits.performance > 0.7 && (
+                      <span className="text-xs px-2 py-1 bg-orange-500/20 text-orange-400 rounded-full">
+                        High Performance
+                      </span>
+                    )}
+                    {personality.traits.organization > 0.7 && (
+                      <span className="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded-full">
+                        Well Organized
+                      </span>
+                    )}
+                  </div>
                 </div>
               </GlassPanel>
             </div>
