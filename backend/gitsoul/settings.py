@@ -174,13 +174,13 @@ REST_FRAMEWORK = {
     }
 }
 
-# CORS settings - Allow specific origins with scheme
-CORS_ALLOWED_ORIGINS = [
+# CORS settings - Allow specific origins without paths
+CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://0.0.0.0:3000",
     "https://careers-walks-pick-three.trycloudflare.com",
-    "https://careers-walks-pick-three.trycloudflare.com/api/v1"
+    "https://careers-walks-pick-three.trycloudflare.com/api"
 ]
 CORS_ALLOW_CREDENTIALS = True
 
