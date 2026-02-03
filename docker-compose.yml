@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # PostgreSQL Database
@@ -25,16 +25,16 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: gitsoul-backend
-    command: python manage.py runserver 0.0.0.0:8000
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     volumes:
       - ./backend:/app
     ports:
-      - "8001:8000"
+      - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://gitsoul:gitsoul_dev@db:5432/gitsoul
       - DJANGO_SECRET_KEY=dev-secret-key-change-in-production
       - DJANGO_DEBUG=True
-      - ALLOWED_HOSTS=*  # Allow all hosts
+      - ALLOWED_HOSTS=* # Allow all hosts
       - Z_AI_API_KEY=${Z_AI_API_KEY}
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
     depends_on:
@@ -44,24 +44,24 @@ services:
       - gitsoul-network
 
   # Next.js Frontend
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: gitsoul-frontend
-    command: npm run dev
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    ports:
-      - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=http://0.0.0.0:8000/api/v1  # Use 0.0.0.0 for all hosts access
-      - HOSTNAME=0.0.0.0  # Allow Next.js to bind to all interfaces
-    depends_on:
-      - backend
-    networks:
-      - gitsoul-network
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   container_name: gitsoul-frontend
+  #   command: npm run dev
+  #   volumes:
+  #     - ./frontend:/app
+  #     - /app/node_modules
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - NEXT_PUBLIC_API_URL=http://0.0.0.0:8000/api/v1 # Use 0.0.0.0 for all hosts access
+  #     - HOSTNAME=0.0.0.0 # Allow Next.js to bind to all interfaces
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - gitsoul-network
 
 volumes:
   postgres_data:

@@ -164,23 +164,13 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
-    'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle'
-    ],
-    'DEFAULT_THROTTLE_RATES': {
-        'anon': '5/hour',
-        'user': '10/hour'
-    }
 }
 
 # CORS settings - Allow specific origins without paths
-CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
+CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "http://0.0.0.0:3000",
-    "https://careers-walks-pick-three.trycloudflare.com",
-    "https://careers-walks-pick-three.trycloudflare.com/api"
+    "https://careers-walks-pick-three.trycloudflare.com"
 ]
 CORS_ALLOW_CREDENTIALS = True
 

@@ -114,33 +114,36 @@ export default function AnalyzePage() {
 
   // Map API personality data to 3D visualization format
   const mapToVisualizationPersonality = (personalityData: Personality) => {
-    const avgInnovation = (personalityData.traits.innovation + personalityData.traits.creativity) / 2
-    const avgOrganization = personalityData.traits.organization || personalityData.traits.collaboration || 0.5
-    const avgMaintainability = personalityData.traits.maintainability || personalityData.traits.reliability || 0.5
+    // Parse string scores to floats
+    const innovation = parseFloat(personalityData.innovation_score)
+    const creativity = parseFloat(personalityData.creativity_score)
+    const organization = parseFloat(personalityData.organization_score)
+    const maintainability = parseFloat(personalityData.maintainability_score)
+    const performance = parseFloat(personalityData.performance_score)
+    const complexity = parseFloat(personalityData.complexity_score)
     
-    const shapeType = avgInnovation > 0.7 ? 'complex' as const : 
-                     avgInnovation > 0.4 ? 'sphere' as const : 'cube' as const
+    const avgInnovation = (innovation + creativity) / 2
     
     return {
       traits: {
-        complexity: (avgInnovation + (personalityData.traits.technical_excellence || personalityData.traits.performance)) / 2,
-        creativity: personalityData.traits.creativity,
-        maintainability: avgMaintainability,
-        innovation: personalityData.traits.innovation,
-        organization: avgOrganization,
-        performance: personalityData.traits.performance || personalityData.traits.technical_excellence
+        complexity,
+        creativity,
+        maintainability,
+        innovation,
+        organization,
+        performance
       },
       visualization: {
         colors: {
-          primary: avgInnovation > 0.7 ? '#00ffff' : '#0080ff',
-          secondary: avgOrganization > 0.7 ? '#ff00ff' : '#ff8000',
-          accent: avgMaintainability > 0.7 ? '#00ff00' : '#ffff00'
+          primary: personalityData.primary_color,
+          secondary: personalityData.secondary_color,
+          accent: personalityData.accent_color
         },
         shape: {
-          type: shapeType,
-          complexity: (avgInnovation + (personalityData.traits.technical_excellence || personalityData.traits.performance)) / 2,
-          rotation_speed: avgInnovation * 2,
-          particle_count: Math.floor(personalityData.traits.creativity * 150)
+          type: personalityData.shape_type as 'complex' | 'sphere' | 'cube',
+          complexity: complexity,
+          rotation_speed: parseFloat(personalityData.rotation_speed),
+          particle_count: personalityData.particle_count
         }
       }
     }
@@ -297,76 +300,76 @@ export default function AnalyzePage() {
                 
                 <Card>
                   <h4 className="font-semibold text-neon-magenta mb-2">Creativity</h4>
-                  <p className="text-3xl font-bold">{Math.round(personality.traits.creativity * 100)}%</p>
+                  <p className="text-3xl font-bold">{Math.round(parseFloat(personality.creativity_score) * 100)}%</p>
                   <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
                     <div 
                       className="bg-neon-magenta h-2 rounded-full" 
-                      style={{ width: `${personality.traits.creativity * 100}%` }}
+                      style={{ width: `${parseFloat(personality.creativity_score) * 100}%` }}
                     ></div>
                   </div>
                   <p className="text-sm text-gray-400 mt-2">
-                    {personality.traits.creativity > 0.7 ? 'Highly creative solutions' :
-                     personality.traits.creativity > 0.4 ? 'Creative approach' : 'Conventional methods'}
+                    {parseFloat(personality.creativity_score) > 0.7 ? 'Highly creative solutions' :
+                     parseFloat(personality.creativity_score) > 0.4 ? 'Creative approach' : 'Conventional methods'}
                   </p>
                 </Card>
                 
                 <Card>
                   <h4 className="font-semibold text-neon-green mb-2">Maintainability</h4>
-                  <p className="text-3xl font-bold">{Math.round(personality.traits.maintainability * 100)}%</p>
+                  <p className="text-3xl font-bold">{Math.round(parseFloat(personality.maintainability_score) * 100)}%</p>
                   <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
                     <div 
                       className="bg-neon-green h-2 rounded-full" 
-                      style={{ width: `${personality.traits.maintainability * 100}%` }}
+                      style={{ width: `${parseFloat(personality.maintainability_score) * 100}%` }}
                     ></div>
                   </div>
                   <p className="text-sm text-gray-400 mt-2">
-                    {personality.traits.maintainability > 0.7 ? 'Easy to maintain' :
-                     personality.traits.maintainability > 0.4 ? 'Moderately maintainable' : 'Hard to maintain'}
+                    {parseFloat(personality.maintainability_score) > 0.7 ? 'Easy to maintain' :
+                     parseFloat(personality.maintainability_score) > 0.4 ? 'Moderately maintainable' : 'Hard to maintain'}
                   </p>
                 </Card>
 
                 <Card>
                   <h4 className="font-semibold text-neon-purple mb-2">Innovation</h4>
-                  <p className="text-3xl font-bold">{Math.round(personality.traits.innovation * 100)}%</p>
+                  <p className="text-3xl font-bold">{Math.round(parseFloat(personality.innovation_score) * 100)}%</p>
                   <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
                     <div 
                       className="bg-neon-purple h-2 rounded-full" 
-                      style={{ width: `${personality.traits.innovation * 100}%` }}
+                      style={{ width: `${parseFloat(personality.innovation_score) * 100}%` }}
                     ></div>
                   </div>
                   <p className="text-sm text-gray-400 mt-2">
-                    {personality.traits.innovation > 0.7 ? 'Cutting-edge innovation' :
-                     personality.traits.innovation > 0.4 ? 'Innovative approach' : 'Traditional approach'}
+                    {parseFloat(personality.innovation_score) > 0.7 ? 'Cutting-edge innovation' :
+                     parseFloat(personality.innovation_score) > 0.4 ? 'Innovative approach' : 'Traditional approach'}
                   </p>
                 </Card>
 
                 <Card>
                   <h4 className="font-semibold text-neon-yellow mb-2">Organization</h4>
-                  <p className="text-3xl font-bold">{Math.round(personality.traits.organization * 100)}%</p>
+                  <p className="text-3xl font-bold">{Math.round(parseFloat(personality.organization_score) * 100)}%</p>
                   <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
                     <div 
                       className="bg-neon-yellow h-2 rounded-full" 
-                      style={{ width: `${personality.traits.organization * 100}%` }}
+                      style={{ width: `${parseFloat(personality.organization_score) * 100}%` }}
                     ></div>
                   </div>
                   <p className="text-sm text-gray-400 mt-2">
-                    {personality.traits.organization > 0.7 ? 'Well-organized structure' :
-                     personality.traits.organization > 0.4 ? 'Good organization' : 'Needs organization'}
+                    {parseFloat(personality.organization_score) > 0.7 ? 'Well-organized structure' :
+                     parseFloat(personality.organization_score) > 0.4 ? 'Good organization' : 'Needs organization'}
                   </p>
                 </Card>
 
                 <Card>
                   <h4 className="font-semibold text-orange-500 mb-2">Performance</h4>
-                  <p className="text-3xl font-bold">{Math.round((personality.traits.performance || personality.traits.technical_excellence) * 100)}%</p>
+                  <p className="text-3xl font-bold">{Math.round(parseFloat(personality.performance_score) * 100)}%</p>
                   <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
                     <div 
                       className="bg-orange-500 h-2 rounded-full" 
-                      style={{ width: `${(personality.traits.performance || personality.traits.technical_excellence) * 100}%` }}
+                      style={{ width: `${parseFloat(personality.performance_score) * 100}%` }}
                     ></div>
                   </div>
                   <p className="text-sm text-gray-400 mt-2">
-                    {(personality.traits.performance || personality.traits.technical_excellence) > 0.7 ? 'High-performance code' :
-                     (personality.traits.performance || personality.traits.technical_excellence) > 0.4 ? 'Good performance' : 'Performance concerns'}
+                    {parseFloat(personality.performance_score) > 0.7 ? 'High-performance code' :
+                     parseFloat(personality.performance_score) > 0.4 ? 'Good performance' : 'Performance concerns'}
                   </p>
                 </Card>
               </div>
@@ -386,7 +389,7 @@ export default function AnalyzePage() {
                     const categoryColor = isStrength ? 'green' : isIssue ? 'red' : 'blue'
                     
                     return (
-                      <div key={index} className="glass p-4 rounded-lg">
+                      <div key={insight.id} className="glass p-4 rounded-lg">
                         <div className="flex justify-between items-start mb-2">
                           <div className="flex items-center space-x-2">
                             <span className={`inline-block w-3 h-3 rounded-full ${
@@ -402,19 +405,19 @@ export default function AnalyzePage() {
                             {isStrength ? 'Strength' : isIssue ? 'Issue' : 'Pattern'}
                           </span>
                         </div>
-                        <p className="text-gray-400">{insight.description}</p>
+                        <p className="text-gray-400">{insight.insight_text}</p>
                         <div className="mt-2 flex items-center justify-between">
                           <span className="text-xs text-gray-500">
-                            {Math.round(insight.confidence * 100)}% confidence
+                            Severity: {insight.severity}
                           </span>
                           {isIssue && (
                             <span className={`text-xs px-2 py-1 rounded ${
-                              insight.confidence > 0.8 ? 'bg-red-500/20 text-red-400' :
-                              insight.confidence > 0.5 ? 'bg-yellow-500/20 text-yellow-400' :
+                              insight.severity === 'high' ? 'bg-red-500/20 text-red-400' :
+                              insight.severity === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
                               'bg-orange-500/20 text-orange-400'
                             }`}>
-                              {insight.confidence > 0.8 ? 'High Severity' :
-                               insight.confidence > 0.5 ? 'Medium Severity' : 'Low Severity'}
+                              {insight.severity === 'high' ? 'High Severity' :
+                               insight.severity === 'medium' ? 'Medium Severity' : 'Low Severity'}
                             </span>
                           )}
                         </div>
@@ -426,35 +429,15 @@ export default function AnalyzePage() {
                 {/* Summary */}
                 <div className="mt-6 p-4 bg-dark-panel rounded-lg">
                   <h4 className="font-semibold text-white mb-2">Personality Summary</h4>
-                  <p className="text-gray-400">{personality.summary}</p>
+                  <p className="text-gray-400">{personality.personality_description}</p>
                   
                   {/* Personality Tags */}
                   <div className="mt-4 flex flex-wrap gap-2">
-                    {personality.traits.innovation > 0.7 && (
-                      <span className="text-xs px-2 py-1 bg-neon-purple/20 text-neon-purple rounded-full">
-                        Innovative
+                    {personality.tags.map((tag, index) => (
+                      <span key={index} className="text-xs px-2 py-1 bg-neon-cyan/20 text-neon-cyan rounded-full">
+                        {tag}
                       </span>
-                    )}
-                    {personality.traits.creativity > 0.7 && (
-                      <span className="text-xs px-2 py-1 bg-neon-magenta/20 text-neon-magenta rounded-full">
-                        Creative
-                      </span>
-                    )}
-                    {personality.traits.maintainability > 0.7 && (
-                      <span className="text-xs px-2 py-1 bg-neon-green/20 text-neon-green rounded-full">
-                        Maintainable
-                      </span>
-                    )}
-                    {personality.traits.performance > 0.7 && (
-                      <span className="text-xs px-2 py-1 bg-orange-500/20 text-orange-400 rounded-full">
-                        High Performance
-                      </span>
-                    )}
-                    {personality.traits.organization > 0.7 && (
-                      <span className="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded-full">
-                        Well Organized
-                      </span>
-                    )}
+                    ))}
                   </div>
                 </div>
               </GlassPanel>

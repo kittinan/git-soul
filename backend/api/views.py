@@ -70,6 +70,8 @@ class RepositoryViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_202_ACCEPTED)
             
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return Response(
                 {'error': f'Failed to start analysis: {str(e)}'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -124,6 +126,8 @@ class AnalysisViewSet(viewsets.ReadOnlyModelViewSet):
             return Response(serializer.data)
             
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return Response(
                 {'error': f'Failed to get personality: {str(e)}'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
